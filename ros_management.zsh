@@ -12,7 +12,7 @@
 # replace the custom ROS workspaces started by $HOME
 export ros1_workspaces="/opt/ros/noetic $HOME/catkin_ws"
 export ros2_workspaces="/opt/ros/foxy $HOME/ros2_ws"
-export PS1_ori=$PS1
+export PREFIX_ori=$ZSH_ESSEMBEH_PREFIX
 
 remove_paths()
 {
@@ -113,8 +113,8 @@ for ws in $ROS1_PATHS
 do
     register_ros_workspace $ws
 done
-# change prompt (actually not by default)
-export PS1=$PS1_ori
+# change prompt 
+export ZSH_ESSEMBEH_PREFIX="%{$fg[blue]%}[ROS1]%{$reset_color%}$PREFIX_ori"
 source /usr/share/gazebo/setup.sh
 }
 
@@ -133,7 +133,7 @@ do
     register_ros_workspace $ws
 done
 # change prompt 
-export PS1=$fg[yellow][ROS2]$PS1_ori
+export ZSH_ESSEMBEH_PREFIX="%{$fg[yellow]%}[ROS2]%{$reset_color%}$PREFIX_ori"
 source /usr/share/gazebo/setup.sh
 }
 
