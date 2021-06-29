@@ -4,14 +4,16 @@
 # Originally created by Olivier Kermorgant
 
 # ROS 1 / 2 workspaces are defined in overlay ordering 
-# ex: ros1_workspaces="/opt/ros/noetic $HOME/ros_ws1 $HOME/ros_ws2"
+# ex: ros1_ws="/opt/ros/noetic $HOME/ros_ws1 $HOME/ros_ws2"
 
 # Takes a path string separated with colons and a list of sub-paths
 # Removes path elements containing sub-paths
 
 # replace the custom ROS workspaces started by $HOME
-export ros1_workspaces="/opt/ros/noetic $HOME/catkin_ws"
-export ros2_workspaces="/opt/ros/foxy $HOME/ros2_ws"
+export ros1_ws="/opt/ros/noetic $HOME/catkin_ws"
+export ros2_foxy_ws="/opt/ros/foxy $HOME/ros2_ws"
+export ros2_galactic_ws="/opt/ros/galactic $HOME/ros2_ws"
+export ros2_version="galactic"
 export PREFIX_ori=$ZSH_ESSEMBEH_PREFIX
 
 remove_paths()
@@ -62,7 +64,7 @@ local sub
 for sub in "/" "/install/" "/devel/"
 do
     if [ -f $1${sub}setup.zsh ]; then        
-            source $1${sub}setup.zsh
+            source $1${sub}local_setup.zsh
         return
     fi
 done
@@ -71,6 +73,14 @@ done
 # Equivalent of roscd but jumps to the source (also, no completion)
 ros2cd()
 {
+local ros2_workspaces
+if [[ $ros2_version = "galactic" ]]; then
+    ros2_workspaces=$ros2_galactic_ws
+fi
+if [[ $ros2_version = "foxy" ]]; then
+    ros2_workspaces=$ros2_foxy_ws
+fi
+
 IFS=' ' read -A -r ROS2_PATHS <<< $ros2_workspaces
 local ws
 local prev=""
@@ -103,11 +113,12 @@ echo "Could not find package $1"
 ros1ws()
 {
 # Clean ROS 2 paths
-remove_all_paths $ros2_workspaces
+remove_all_paths $ros2_foxy_ws
+remove_all_paths $ros2_galactic_ws
 unset ROS_DISTRO
 
 # register ROS 1 workspaces
-IFS=' ' read -A -r ROS1_PATHS <<< $ros1_workspaces 
+IFS=' ' read -A -r ROS1_PATHS <<< $ros1_ws 
 local ws
 for ws in $ROS1_PATHS
 do
@@ -122,9 +133,24 @@ source /usr/share/gazebo/setup.sh
 ros2ws()
 {
 # Clean ROS 1 paths
-remove_all_paths $ros1_workspaces
+remove_all_paths $ros1_ws
 unset ROS_DISTRO
 
+local ros2_workspaces
+# switch to galactic by default
+if [[ $# -eq 0 ]]; then
+   ros2_workspaces=$ros2_galactic_ws
+   export ros2_version="galactic"
+else
+   if [[ $@ = "galactic" ]]; then
+       ros2_workspaces=$ros2_galactic_ws
+       export ros2_version="galactic"
+   fi
+   if [[ $@ = "foxy" ]]; then
+       ros2_workspaces=$ros2_foxy_ws
+       export ros2_version="foxy"
+   fi
+fi
 # register ROS 2 workspaces
 IFS=' ' read -A -r ROS2_PATHS <<< $ros2_workspaces 
 local ws
@@ -133,7 +159,7 @@ do
     register_ros_workspace $ws
 done
 # change prompt 
-export ZSH_ESSEMBEH_PREFIX="%{$fg[yellow]%}[ROS2]%{$reset_color%}$PREFIX_ori"
+export ZSH_ESSEMBEH_PREFIX="%{$fg[yellow]%}[ROS2-$ros2_version]%{$reset_color%}$PREFIX_ori"
 source /usr/share/gazebo/setup.sh
 }
 
@@ -141,13 +167,20 @@ source /usr/share/gazebo/setup.sh
 colbuild()
 {
 # Clean ROS 1 paths
-remove_all_paths $ros1_workspaces
+remove_all_paths $ros1_ws
 unset ROS_DISTRO
 # source ROS 2 ws up to this one
 unset AMENT_PREFIX_PATH
 unset AMENT_CURRENT_PREFIX
 unset COLCON_PREFIX_PATH
 
+local ros2_workspaces
+if [[ $ros2_version = "galactic" ]]; then
+    ros2_workspaces=$ros2_galactic_ws
+fi
+if [[ $ros2_version = "foxy" ]]; then
+    ros2_workspaces=$ros2_foxy_ws
+fi
 IFS=' ' read -A -r ROS2_PATHS <<< $ros2_workspaces 
 local ws
 for ws in $ROS2_PATHS; do
@@ -184,23 +217,23 @@ if [ ! -d "src/ros1_bridge" ]; then
     return
 fi
 # clean environment variables
-remove_all_paths $ros1_workspaces $ros2_workspaces
+remove_all_paths $ros1_ws $ros2_ws
 unset ROS_DISTRO
 # register ROS 2 overlays before the ros1_bridge overlay
 colbuild
 
 # register base ROS 1 installation
 unset ROS_DISTRO
-local ros1_base=${ros1_workspaces% *}
+local ros1_base=${ros1_ws% *}
 register_ros_workspace $ros1_base
 # register base ROS 2 installation
 unset ROS_DISTRO
-local ros2_base=${ros2_workspaces% *}
+local ros2_base=${ros2_galactic_ws% *}
 register_ros_workspace $ros2_base
 
 # register ROS 1 overlays
 unset ROS_DISTRO
-for ws in $ros1_workspaces; do
+for ws in $ros1_ws; do
     if [[ $ws != $ros1_base ]]; then
         register_ros_workspace $ws
     fi
