@@ -106,9 +106,10 @@ for ws in $ros1_workspaces
 do
     register_ros_workspace $ws
 done
-# change prompt (actually not by default)
+# change prompt if you like (actually not by default)
 local ROS1_COLOR="29"   # noetic green
 export PS1="$PS1_ori"
+# PS1="\e[38;5;${ROS1_COLOR}m[ROS1] $PS1_ori"
 source /usr/share/gazebo/setup.sh
 }
 
@@ -143,21 +144,22 @@ unset AMENT_CURRENT_PREFIX
 unset COLCON_PREFIX_PATH
 
 local ws
-local PWD=$(pwd)
+local PWD="$(pwd)/"
 for ws in $ros2_workspaces; do
-    if [[ "$ws" = "$PWD"* ]]; then
+    if [[ "$PWD" = "$ws/"* ]]; then
       break
     fi
     register_ros_workspace $ws
 done
 
-cd $ws
 local cmd="colcon build --symlink-install --continue-on-error $@"
 if [ -d "src/ros1_bridge" ]; then
     cmd="$cmd  --packages-skip ros1_bridge"
 fi
-eval $cmd
-cd $PWD
+# cd $ws
+(ros2ws;cd $ws;eval $cmd)
+# eval $cmd
+# cd $PWD
 ros2ws
 }
 
